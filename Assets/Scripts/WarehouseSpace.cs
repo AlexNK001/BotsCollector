@@ -1,30 +1,80 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 
+[RequireComponent(typeof(Storage))]
 public class WarehouseSpace : MonoBehaviour
 {
-    [SerializeField] private Scanner _scanningArea;
     [SerializeField] private BotCollector[] _collectors = new BotCollector[3];
-    [SerializeField] private List<Resource> _resources = new List<Resource>();
+    [SerializeField] private Scanner _scanner;
 
-    private void FixedUpdate()
+    private Storage _storage;
+    private Queue<Resource> _bringResources = new Queue<Resource>();
+
+    private event UnityAction<Resource> ResourceLoaded;
+
+    public Storage Storage => _storage;
+
+    private void Start()
     {
-        if (_collectors.Any(bot => bot.IsFree))
-        {
-            BotCollector bot = _collectors.First(bot => bot.IsFree);
+        _storage = GetComponent<Storage>();
+    }
 
-            if (bot != null && _scanningArea.TryGetResource(out Resource resource))
+    private void OnEnable()
+    {
+        for (int i = 0; i < _collectors.Length; i++)
+        {
+            _collectors[i].StorageFree += TryTakeTask;
+        }
+
+        _scanner.ResourceFound += CheakingResource;
+        ResourceLoaded += TryGivingTaskFreeBot;
+    }
+
+    private void OnDisable()
+    {
+        for (int i = 0; i < _collectors.Length; i++)
+        {
+            _collectors[i].StorageFree -= TryTakeTask;
+        }
+
+        _scanner.ResourceFound -= CheakingResource;
+        ResourceLoaded -= TryGivingTaskFreeBot;
+    }
+
+    private void CheakingResource(Resource resource)
+    {
+        if (_collectors.Any(bot => bot.Target == resource) == false)
+        {
+            if (_bringResources.Contains(resource) == false)
             {
-                bot.SetTarget(resource);
+                _bringResources.Enqueue(resource);
+                ResourceLoaded?.Invoke(resource);
             }
         }
     }
 
-    public void SetResource(Resource resource)
+    private void TryGivingTaskFreeBot(Resource resource)
     {
-        _resources.Add(resource);
-        resource.transform.SetParent(transform, true);
-        resource.gameObject.SetActive(false);
+        if (_bringResources.Count > 0)
+        {
+            foreach (BotCollector bot in _collectors)
+            {
+                if (bot.Target == null)
+                {
+                    bot.SetTarget(_bringResources.Dequeue());
+                    break;
+                }
+            }
+        }
+    }
+
+    public void TryTakeTask(BotCollector botCollector)
+    {
+        if (_bringResources.Count > 0)
+        {
+            botCollector.SetTarget(_bringResources.Dequeue());
+        }
     }
 }

@@ -1,53 +1,57 @@
 using UnityEngine;
+using UnityEngine.Events;
 
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(BoxCollider))]
+[RequireComponent(typeof(Movement))]
+[RequireComponent(typeof(Storage))]
 public class BotCollector : MonoBehaviour
 {
     [SerializeField] private WarehouseSpace _warehouse;
-    [SerializeField] private float _speed = 0.02f;
+    [SerializeField] private Hand _hand;
 
-    private Vector3 _direction;
-    private Resource _target = null;
+    public event UnityAction<BotCollector> StorageFree;
 
-    public bool IsFree => _target == null;
+    private Movement _movement;
+    private Storage _storage;
+    private BotCollector _botCollector;
 
-    private void Update()
+    public Resource Target { get; private set; }
+
+    private void Start()
     {
-        if (IsFree == false)
-        {
-            transform.position = Vector3.MoveTowards(transform.position, _direction, _speed * Time.deltaTime);
-        }
+        _movement = GetComponent<Movement>();
+        _storage = GetComponent<Storage>();
+        _storage.SetHand(_hand);
+        _botCollector = GetComponent<BotCollector>();
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.collider.TryGetComponent(out Resource resource1))
         {
-            if (resource1 == _target)
+            if (resource1 == Target)
             {
-                resource1.transform.SetParent(transform, true);
-                _direction = _warehouse.transform.position;
+                _storage.SetResource(resource1);
+                _movement.SetDirection(_warehouse.transform.position);
             }
         }
 
-        if (collision.collider.TryGetComponent(out WarehouseSpace warehouseSpace))//collision.gameObject == _warehouse.gameObject
+        if (collision.collider.TryGetComponent(out WarehouseSpace warehouseSpace))
         {
-            if (TryGiveResource(out Resource resource))
+            if (_storage.TryGetResource(out Resource resource))
             {
-                warehouseSpace.SetResource(resource);
+                warehouseSpace.Storage.SetResource(resource);
             }
-        }
-    }
 
-    public bool TryGiveResource(out Resource resource)
-    {
-        resource = GetComponentInChildren<Resource>();
-        _target = null;
-        return resource != null;
+            _movement.Stop();
+            StorageFree?.Invoke(_botCollector);
+        }
     }
 
     public void SetTarget(Resource resource)
     {
-        _target = resource;
-        _direction = resource.transform.position;
+        Target = resource;
+        _movement.SetDirection(Target.transform.position);
     }
 }

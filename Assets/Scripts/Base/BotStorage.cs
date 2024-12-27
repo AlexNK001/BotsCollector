@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Bots;
 
-public class BotStorage
+public class BotStorage : IUnsubscriber
 {
-    private List<Bot> _bots;
-    private Queue<Bot> _freeBots;
-
-    public Action<Bot> BotFreed;
+    private readonly List<Bot> _bots;
+    private readonly Queue<Bot> _freeBots;
 
     public BotStorage()
     {
@@ -15,16 +12,17 @@ public class BotStorage
         _freeBots = new Queue<Bot>();
     }
 
+    public Action<Bot> BotFreed;
+
+    public int Count => _bots.Count;
+
     public void SetBot(Bot bot)
     {
-        bot.Freed += SayFree;
-        _bots.Add(bot);
-        AddQueue(bot);
-    }
+        bot.Freed += OnReportFreeBot;
+        bot.BaseChanged += OnRemoveBot;
 
-    private void SayFree(Bot bot)
-    {
-        BotFreed.Invoke(bot);
+        _bots.Add(bot);
+        EnqueueBot(bot);
     }
 
     public bool TryGetFreeBot(out Bot bot)
@@ -34,10 +32,31 @@ public class BotStorage
         return haveFreeBot;
     }
 
-    public void AddQueue(Bot bot)
+    public void EnqueueBot(Bot bot)
     {
         _freeBots.Enqueue(bot);
     }
+
+    public void Unsubscribe()
+    {
+        foreach (Bot bot in _bots)
+            UnsubscribeBot(bot);
+    }
+
+    private void OnRemoveBot(Bot bot)
+    {
+        _bots.Remove(bot);
+        UnsubscribeBot(bot);
+    }
+
+    private void OnReportFreeBot(Bot bot)
+    {
+        BotFreed.Invoke(bot);
+    }
+
+    private void UnsubscribeBot(Bot bot)
+    {
+        bot.Freed -= OnReportFreeBot;
+        bot.BaseChanged -= OnRemoveBot;
+    }
 }
-
-

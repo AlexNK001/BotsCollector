@@ -1,17 +1,33 @@
 ﻿using System;
+using UnityEngine;
 
-public sealed class SpawnPoint : SingleStorage
+public class SpawnPoint : Target
 {
-    public event Action<SpawnPoint> Freed;
+    private Resource _resource;
 
-    public override bool TryGet(out Resource resource)
+    public Action<SpawnPoint> Freed;
+
+    public bool TryGet(out Resource resource)
     {
-        bool isFreed = base.TryGet(out resource);
-
-        if (isFreed)
+        if (_resource != null)
+        {
+            resource = _resource;
+            _resource = null;
             Freed.Invoke(this);
+            return true;
+        }
+        else
+        {
+            resource = null;
+            return false;
+        }
+    }
 
-        return isFreed;
+    public void Take(Resource resource)
+    {
+        _resource = resource;
+        resource.transform.SetParent(transform);
+        resource.transform.SetPositionAndRotation(transform.position, Quaternion.identity);
     }
 }
 

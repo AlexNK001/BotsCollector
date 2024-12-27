@@ -2,15 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SpawnPointsHandler : MonoBehaviour, IPoolUser
+public class ResourceSpawner : MonoBehaviour, IPoolUser
 {
-    [SerializeField] private SummonedTaskSO _summonedTaskSO;
+    [SerializeField] private PoolTask _poolTask;
     [SerializeField] private SpawnPoint[] _spawnPoints;
     [SerializeField] private Timer _timer;
 
     private Queue<SpawnPoint> _freePoints;
 
-    public event Func<PoolObject, PoolObject> Summoned;
+    public event Func<PoolObject, PoolObject> RequestPoolObject;
 
     private void Start()
     {
@@ -39,7 +39,8 @@ public class SpawnPointsHandler : MonoBehaviour, IPoolUser
 
     private void AddToFreePoints(SpawnPoint spawnPoints)
     {
-        _freePoints.Enqueue(spawnPoints);
+        if (_freePoints.Contains(spawnPoints) == false)
+            _freePoints.Enqueue(spawnPoints);
     }
 
     private void Spawn()
@@ -47,7 +48,7 @@ public class SpawnPointsHandler : MonoBehaviour, IPoolUser
         if (_freePoints.Count > 0)
         {
             SpawnPoint spawnPoint = _freePoints.Dequeue();
-            Resource resource = Summoned.Invoke(_summonedTaskSO.PoolObject) as Resource;
+            Resource resource = RequestPoolObject.Invoke(_poolTask.PoolObject) as Resource;
             spawnPoint.Take(resource);
         }
     }

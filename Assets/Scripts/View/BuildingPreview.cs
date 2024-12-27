@@ -4,21 +4,21 @@ using UnityEngine;
 public class BuildingPreview : MonoBehaviour
 {
     [SerializeField] private BoxCollider _boxCollider;
-    [SerializeField] private Ground _ground;
+    [SerializeField] private BaseColorStorage _colorStorage;
 
     private Transform _transform;
     private List<Collider> _collisions;
     private Boundaries _boundariesBuilding;
     private Boundaries _boundariesGround;
 
-    public bool CanBuild => _collisions.Count <= 0 && IsWithinBoundaries();//
+    public bool CanBuild { get; private set; }
 
-    private void Awake()
+    public void Init(Boundaries groundBoundaries)
     {
         _transform = transform;
         _collisions = new List<Collider>();
         _boundariesBuilding = new Boundaries(_boxCollider, transform.localScale);
-        _boundariesGround = _ground.GetBoundaries();
+        _boundariesGround = groundBoundaries;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -29,6 +29,18 @@ public class BuildingPreview : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         _collisions.Remove(other);
+    }
+
+    private void OnDisable()
+    {
+        _collisions.Clear();
+    }
+
+    private void Update()
+    {
+        CanBuild = _collisions.Count <= 0 && IsWithinBoundaries();
+        Color color = CanBuild ? Color.green : Color.red;
+        _colorStorage.SetColor(color);
     }
 
     private bool IsWithinBoundaries()

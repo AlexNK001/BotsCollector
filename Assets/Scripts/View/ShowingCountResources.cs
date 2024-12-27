@@ -3,20 +3,20 @@ using UnityEngine;
 
 public class ShowingCountResources : MonoBehaviour
 {
-    [SerializeField] private Base _base;
+    [SerializeField] private Warehouse _warehouse;
     [SerializeField] private TMP_Text _resourceCount;
 
     private void Start()
     {
-        _base.ResourceCountChanged += ShowCount;
+        _warehouse.ResourceCountChanged += OnShowCount;
     }
 
     private void OnDestroy()
     {
-        _base.ResourceCountChanged -= ShowCount;
+        _warehouse.ResourceCountChanged -= OnShowCount;
     }
 
-    private void ShowCount(int resourceCount)
+    private void OnShowCount(int resourceCount)
     {
         _resourceCount.text = resourceCount.ToString();
     }

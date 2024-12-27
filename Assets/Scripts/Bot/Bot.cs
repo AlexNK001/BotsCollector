@@ -1,59 +1,78 @@
 using System;
 using UnityEngine;
 
-namespace Bots
+[RequireComponent(typeof(Mover), typeof(Bag))]
+public class Bot : PoolObject
 {
-    [RequireComponent(typeof(Mover), typeof(Bug))]
-    public class Bot : PoolObject
+    [SerializeField] private Mover _mover;
+    [SerializeField] private Bag _bug;
+    [SerializeField] BotColorStorage _botColorStorage;
+
+    public event Action<Bot> Freed;
+    public Action<Bot> BaseChanged;
+
+    private Target _target;
+    private Target _warehouse;
+
+    private void OnTriggerEnter(Collider other)
     {
-        [SerializeField] private Mover _mover;
-        [SerializeField] private Bug _bug;
-
-        [SerializeField] private IBotTarget _target;
-        [SerializeField] private IResourceTaker _base;
-
-        public event Action<Bot> Freed;
-
-        public void SetBase(IResourceTaker storageWarehouse)
+        if (other.transform.TryGetComponent(out Target target) && target == _target)
         {
-            _base = storageWarehouse;
-        }
-
-        private void OnTriggerEnter(Collider other)//вынести в отдельный класс??
-        {
-            if (other.transform.TryGetComponent(out IBotTarget botTarget) && botTarget == _target)
+            switch (target)
             {
-                switch (botTarget)
-                {
-                    case IResourceGiver spawnPoint:
-                        if (spawnPoint.TryGet(out Resource resourceTaken))//убрать Try??
-                        {
-                            _bug.Take(resourceTaken);
-                            _target = _base;
-                        }
+                case SpawnPoint spawnPoint:
+                    TryTakeResource(spawnPoint);
+                    break;
 
-                        _mover.SetDirection(_base.GetTransform());
-                        break;
+                case Warehouse warehouse:
+                    TryGiveResource(warehouse);
+                    break;
 
-                    case IResourceTaker warehouse:
-                        if (_bug.TryGet(out Resource resourceGiven))//убрать Try??
-                        {
-                            warehouse.Take(resourceGiven);
-                            Freed?.Invoke(this);
-                        }
-                        break;
-
-                    case IBotBilder bilder:
-                        bilder.Build(this);
-                        break;
-                }
+                case Flag bilder:
+                    bilder.Build(this);
+                    break;
             }
         }
+    }
 
-        public void SetTarget(IBotTarget storage)
+    public void SetBase(Base newBase)
+    {
+        _warehouse = newBase.GetComponent<Warehouse>();
+        _botColorStorage.SetColor(newBase.Color);
+    }
+
+    public void SetTarget(Target storage)
+    {
+        _target = storage;
+        _mover.SetDirection(_target.transform.position);
+
+        if (storage is Flag)
+            BaseChanged.Invoke(this);
+    }
+
+    private void TryTakeResource(SpawnPoint spawnPoint)
+    {
+        if (spawnPoint.TryGet(out Resource resourceTaken))
         {
-            _target = storage;
-            _mover.SetDirection(storage.GetTransform());
+            _bug.Take(resourceTaken);
+            _target = _warehouse;
+            _mover.SetDirection(_target.transform.position);
         }
+        else
+        {
+            Freed.Invoke(this);
+        }
+    }
+
+    private void TryGiveResource(Warehouse warehouse)
+    {
+        if (_bug.TryGet(out Resource resourceGiven))
+        {
+            _mover.Stop();
+            warehouse.Take(resourceGiven);
+            _target = null;
+        }
+
+        Freed.Invoke(this);
     }
 }

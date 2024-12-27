@@ -1,29 +1,34 @@
 ﻿using UnityEngine;
 
-namespace Bots
+public class Mover : MonoBehaviour
 {
-    internal class Mover : MonoBehaviour
+    [SerializeField] private float _speed = 4f;
+
+    private Vector3 _direction;
+
+    private void Start()
     {
-        [SerializeField] private float _speed = 4f;
+        _direction = transform.position;
+    }
 
-        private Vector3 _direction;
+    private void Update()
+    {
+        if (transform.position != _direction)
+            transform.position = Vector3.MoveTowards(
+                transform.position, 
+                _direction, 
+                _speed * Time.deltaTime);
+    }
 
-        private void Update()
-        {
-            if (transform.position != _direction)
-                transform.position = Vector3.MoveTowards(transform.position, _direction, _speed * Time.deltaTime);
-        }
+    public void SetDirection(Vector3 direction)
+    {
+        _direction = direction;
+        _direction.y = transform.position.y;
+        transform.LookAt(_direction);
+    }
 
-        internal void SetDirection(Transform direction)
-        {
-            float height = transform.position.y;
-
-            _direction = direction.position;
-            _direction.y = height;
-
-            Vector3 lookDirection = direction.position;
-            lookDirection.y = height;
-            transform.LookAt(lookDirection);
-        }
+    public void Stop()
+    {
+        _direction = transform.position;
     }
 }

@@ -1,18 +1,13 @@
-﻿using Bots;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class Game : MonoBehaviour
+public class Spawner : MonoBehaviour
 {
-    [SerializeField]
-    private SpawnPointsHandler _spawnPointsHandler;
-
+    [SerializeField] private Ground _ground;
+    [SerializeField] private ResourceSpawner _spawnPointsHandler;
     [SerializeField] private Resource _resourcePrefab;
     [SerializeField] private Bot _botPrefab;
     [SerializeField] private Base _basePrefab;
-
-
     [SerializeField] private Base[] _basesInScene;
 
     private ItemPool<Resource> _resourcePool;
@@ -23,21 +18,26 @@ public class Game : MonoBehaviour
 
     private void Start()
     {
-        _resourcePool = new ItemPool<Resource>(_resourcePrefab,collectionCheck: true);
+        _resourcePool = new ItemPool<Resource>(_resourcePrefab);
         _botPool = new ItemPool<Bot>(_botPrefab);
         _basePool = new ItemPool<Base>(_basePrefab);
 
         _bases = new List<Base>();
 
         for (int i = 0; i < _basesInScene.Length; i++)
-        {
-            Base currentBase = _basesInScene[i];
-            currentBase.SummonedPoolObject += Get;
-            currentBase.ResourceAccepted += Reliase;
-            _bases.Add(currentBase);
-        }
+            AddToListBase(_basesInScene[i]);
 
-        _spawnPointsHandler.Summoned += Get;
+        _spawnPointsHandler.RequestPoolObject += Get;
+    }
+
+    private void AddToListBase(Base createdBase)
+    {
+        createdBase.Init(_ground.GetBoundaries(), Random.ColorHSV());
+
+
+        createdBase.RequestPoolObject += Get;
+        createdBase.ResourceAccepted += Reliase;
+        _bases.Add(createdBase);
     }
 
     private PoolObject Get(PoolObject requestedPoolObject)
@@ -51,7 +51,9 @@ public class Game : MonoBehaviour
                 return _botPool.Get();
 
             case Base:
-                return _basePool.Get();
+                Base newBase = _basePool.Get();
+                AddToListBase(newBase);
+                return newBase;
 
             default:
                 return null;

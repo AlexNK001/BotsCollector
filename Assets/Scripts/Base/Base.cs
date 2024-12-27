@@ -1,93 +1,108 @@
 using UnityEngine;
 using System;
-using Bots;
-using Flags;
+using System.Collections;
 
-public class Base : PoolObject, IResourceTaker
+public class Base : PoolObject, IPoolUser
 {
-    [SerializeField] private Bot[] _bots;
+    [SerializeField, Min(1)] private int _minimumNumberBotsToBuild = 1;
+    [SerializeField] private Bot[] _botsInScene;
+    [SerializeField] private BaseColorStorage _baseColorStorage;
+    [SerializeField] private PoolTask _botPoolTask;
+    [SerializeField] private PoolTask _basePoolTask;
     [SerializeField] private Scanner _scanner;
+    [SerializeField] private FlagHandler _flagHandler;
     [SerializeField] private Flag _flag;
+    [SerializeField] private Warehouse _warehouse;
 
-    public Func<PoolObject, PoolObject> SummonedPoolObject;
-    public Action<int> ResourceCountChanged;
+    private PoolTask _currentPoolTask;
+    private StorageHandler _storageHandler;
+
     public Action<Resource> ResourceAccepted;
+    public event Func<PoolObject, PoolObject> RequestPoolObject;
 
-    private BotStorage _botHandler;
-    private TasksStorage _tasksHandler;
-    private Wallet _wallet;
+    public Color Color { get; private set; }
 
-    [SerializeField] private SummonedTaskSO _currentSummonedTask;
-
-    private void Start()
+    public void Init(Boundaries ground, Color color)
     {
-        _botHandler = new BotStorage();
-        _tasksHandler = new TasksStorage();
-        _wallet = new Wallet();
+        Color = color;
 
-        for (int i = 0; i < _bots.Length; i++)
-        {
-            Bot currentBot = _bots[i];
-            currentBot.SetBase(this);
-            _botHandler.SetBot(currentBot);
-        }
+        _storageHandler = new StorageHandler(_scanner);
+        _baseColorStorage.SetColor(color);
+        AcceptBotsFromScene();
 
-        _botHandler.BotFreed += CheakFreeTask;
-        _scanner.ResourceFound += CheakFreeBot;
+        _flagHandler.Init(ground);
+
+        _warehouse.ResourceAccepteed += OnTryCreate;
+        _flagHandler.FlagIsSetting += OnBuildBase;
+        _flagHandler.enabled = false;
+
+        _currentPoolTask = _botPoolTask;
     }
 
-    internal void SetBot(Bot bot)
+    private void OnDestroy()
     {
-        _botHandler.SetBot(bot);
+        if (_storageHandler != null)
+            _storageHandler.Unsubscribe();
+
+        _warehouse.ResourceAccepteed -= OnTryCreate;
+        _flagHandler.FlagIsSetting -= OnBuildBase;
+    }
+
+    public void SetBot(Bot bot)
+    {
         bot.SetBase(this);
-    }
+        _storageHandler.SetBot(bot);
 
-    private void CheakFreeTask(Bot bot)
-    {
-        if (_tasksHandler.TryGetFreeTask(out IBotTarget result))
+        if (_storageHandler.BotCount >= _minimumNumberBotsToBuild)
         {
-            bot.SetTarget(result);
-        }
-        else
-        {
-            _botHandler.AddQueue(bot);
+            _flagHandler.enabled = true;
         }
     }
 
-    private void CheakFreeBot(IBotTarget task)
+    private void OnTryCreate(Resource resource)
     {
-        if (_botHandler.TryGetFreeBot(out Bot bot))
-        {
-            bot.SetTarget(task);
-        }
-        else
-        {
-            _tasksHandler.AddQueue(task);
-        }
+        ResourceAccepted.Invoke(resource);
+        TryCreate();
     }
 
-    public void Take(Resource resource)
+    private void TryCreate()
     {
-        ResourceAccepted?.Invoke(resource);
-        ResourceCountChanged?.Invoke(_wallet.Add());
-
-        if (_wallet.TrySpend(_currentSummonedTask))
+        if (_warehouse.TrySpend(_currentPoolTask))
         {
-            switch (SummonedPoolObject.Invoke(_currentSummonedTask.PoolObject))
+            switch (RequestPoolObject.Invoke(_currentPoolTask.PoolObject))
             {
                 case Bot bot:
+                    bot.SetBase(this);
                     SetBot(bot);
                     break;
 
                 case Base building:
                     _flag.SetBase(building);
+                    _currentPoolTask = _botPoolTask;
+                    _storageHandler.EnqueueTarget(_flag);
                     break;
             }
         }
     }
 
-    public Transform GetTransform()
+    private void OnBuildBase()
     {
-        return transform;
+        StartCoroutine(WaitRequiredNumberBots());
+    }
+
+    private IEnumerator WaitRequiredNumberBots()
+    {
+        yield return new WaitUntil(() => _storageHandler.BotCount > _minimumNumberBotsToBuild);
+        _currentPoolTask = _basePoolTask;
+    }
+
+    private void AcceptBotsFromScene()
+    {
+        for (int i = 0; i < _botsInScene.Length; i++)
+        {
+            Bot currentBot = _botsInScene[i];
+            currentBot.SetBase(this);
+            SetBot(currentBot);
+        }
     }
 }

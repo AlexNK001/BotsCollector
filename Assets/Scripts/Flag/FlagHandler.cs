@@ -20,15 +20,17 @@ public class FlagHandler : MonoBehaviour, IMouseFollower
     public void Init(Boundaries ground)
     {
         _buildingPreview.Init(ground);
+
         _flag.ConstructionIsCompleted += OnReturnFlag;
-        _flag.gameObject.SetActive(false);
+        _flag.Disable();
     }
 
     public void Click()
     {
+        _buildingPreview.Enable();
+
+        _flag.Enable();
         _lastFlagPosition = _flag.transform.position;
-        _flag.gameObject.SetActive(true);
-        _buildingPreview.gameObject.SetActive(true);
     }
 
     public void Move(Vector3 position)
@@ -38,26 +40,27 @@ public class FlagHandler : MonoBehaviour, IMouseFollower
 
     public void Stop()
     {
+        _buildingPreview.Disable();
+
         if (_buildingPreview.CanBuild)
             FlagIsSetting.Invoke();
         else
             _flag.transform.position = _lastFlagPosition;
-
-        _buildingPreview.gameObject.SetActive(false);
     }
 
     public void Cancel()
     {
+        _buildingPreview.Disable();
+
         if (_lastFlagPosition == transform.position)
-            _flag.gameObject.SetActive(false);
+            _flag.Disable();
 
         _flag.transform.position = _lastFlagPosition;
-        _buildingPreview.gameObject.SetActive(false);
     }
 
     private void OnReturnFlag()
     {
+        _flag.Enable();
         _flag.transform.position = transform.position;
-        _flag.gameObject.SetActive(false);
     }
 }

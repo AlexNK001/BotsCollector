@@ -12,6 +12,17 @@ public class Base : PoolObject, IPoolUser
     [SerializeField] private Scanner _scanner;
     [SerializeField] private FlagHandler _flagHandler;
     [SerializeField] private Flag _flag;
+
+    internal void Disable()
+    {
+        gameObject.SetActive(false);
+    }
+
+    internal void Enabled()
+    {
+        gameObject.SetActive(true);
+    }
+
     [SerializeField] private Warehouse _warehouse;
 
     private PoolTask _currentPoolTask;

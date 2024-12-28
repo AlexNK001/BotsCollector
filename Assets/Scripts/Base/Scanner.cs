@@ -8,12 +8,10 @@ public class Scanner : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.TryGetComponent(out Resource resource))
+        if (other.gameObject.TryGetComponent(out SpawnPoint resource))
         {
-            SpawnPoint spawnPoint = resource.GetComponentInParent<SpawnPoint>();
-
-            if (spawnPoint != null)
-                ResourceFound?.Invoke(spawnPoint);
+            if (resource.HaveResource)
+                ResourceFound?.Invoke(resource);
         }
     }
 }

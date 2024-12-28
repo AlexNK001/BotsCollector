@@ -7,6 +7,8 @@ public class SpawnPoint : Target
 
     public Action<SpawnPoint> Freed;
 
+    public bool HaveResource => _resource != null;
+
     public bool TryGet(out Resource resource)
     {
         if (_resource != null)

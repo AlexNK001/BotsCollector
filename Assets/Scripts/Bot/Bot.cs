@@ -6,7 +6,7 @@ public class Bot : PoolObject
 {
     [SerializeField] private Mover _mover;
     [SerializeField] private Bag _bug;
-    [SerializeField] BotColorStorage _botColorStorage;
+    [SerializeField] private BotColorStorage _botColorStorage;
 
     public event Action<Bot> Freed;
     public Action<Bot> BaseChanged;

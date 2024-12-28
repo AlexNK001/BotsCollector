@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class AnimatorController : MonoBehaviour
+public class BotAnimator : MonoBehaviour
 {
     private readonly int IsRunCommand = Animator.StringToHash("IsRun");
 

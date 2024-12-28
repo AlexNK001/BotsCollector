@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BuildingPreview : MonoBehaviour
@@ -34,6 +35,16 @@ public class BuildingPreview : MonoBehaviour
     private void OnDisable()
     {
         _collisions.Clear();
+    }
+
+    public void Enable()
+    {
+        gameObject.SetActive(true);
+    }
+
+    public void Disable()
+    {
+        gameObject.SetActive(false);
     }
 
     private void Update()

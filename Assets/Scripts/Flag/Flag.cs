@@ -8,16 +8,26 @@ public class Flag : Target
 
     public void Build(Bot bot)
     {
-        _base.gameObject.SetActive(true);
+        _base.Enabled();
         _base.SetBot(bot);
         _base.transform.position = transform.position;
         _base = null;
         ConstructionIsCompleted.Invoke();
     }
 
-    public void SetBase(Base baseUnder—onstruction)
+    public void SetBase(Base baseUnderConstruction)
     {
-        _base = baseUnder—onstruction;
-        _base.gameObject.SetActive(false);
+        _base = baseUnderConstruction;
+        _base.Disable();
+    }
+
+    public void Enable()
+    {
+        gameObject.SetActive(true);
+    }
+
+    public void Disable()
+    {
+        gameObject.SetActive(false);
     }
 }
